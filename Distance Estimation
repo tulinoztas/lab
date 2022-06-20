@@ -27,25 +27,14 @@ class Detector:
     self.odom_sub = message_filters.Subscriber('odom', Odometry)   
     self.measurements = message_filters.ApproximateTimeSynchronizer([self.img_sub, self.pcl_sub, self.odom_sub], queue_size=5, slop=0.1)
     self.measurements.registerCallback(self.measurement_callback)
-    self.marker_sub = rospy.Subscriber('mgs_marker', MGSMarker, self.mgs_marker_callback)
     self.measurements_pub = rospy.Publisher('mgs', MGSMeasurements, queue_size=10)
     self.detection_img_pub = rospy.Publisher('detection_image', Image, queue_size=10)
-    self.track_width = rospy.get_param('~track_width', 0.104) # 0.10391598 
-    self.bear_left = False
-  
-
-  def mgs_marker_callback(self, msg):
-    if msg.command == MGSMarker.BEAR_LEFT:
-      self.bear_left = True
-    elif msg.command == MGSMarker.BEAR_RIGHT:
-      self.bear_left = False
-    
 
   def measurement_callback(self, img_msg, pcl_msg, odom_msg):
     # Initalize measurements:
-    detections_msg = MGSMeasurements()
+    detections_msg = Measurements()
     detections_msg.header.stamp = rospy.Time.now()
-    detections_msg.header.frame_id = pcl_msg.header.frame_id
+    detections_msg.header.frame_id = 'base_footprint'
     detections_msg.odometry = odom_msg
     detections_msg.measurements = []
 
@@ -60,25 +49,41 @@ class Detector:
       hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
     except cv_bridge.CvBridgeError as e:
       print(e)
-    
-    # green:
-    lower_green = np.array([30, 150, 150])
-    upper_green = np.array([80, 255, 255])
-    mask_green = cv2.inRange(hsv, lower_green, upper_green)
-    # blue:
-    lower_blue = np.array([ 90, 150, 150])
-    upper_blue = np.array([150, 255, 255])
-    mask_blue = cv2.inRange(hsv, lower_blue, upper_blue)
-    # red:
-    lower_red = np.array([ 0, 150, 150])
-    upper_red = np.array([10, 255, 255])
-    mask_red = cv2.inRange(hsv, lower_red, upper_red)
-      # also need to add in line crossing (if width if very large?)
+    # search area: 
+    h, w, d = cv_image.shape
+    search_top = 1*h/5
+    search_bot = search_top + 80
+                                    
+    # tape detect 
+    if M_tape['m00'] > 0:
+      # draw point:
+      cx = int(M_tape['m10']/M_tape['m00'])
+      cy = int(M_tape['m01']/M_tape['m00'])
+      cv2.circle(cv_image, (cx, cy), 20, (0,0,255), -1)
+      self.tape_detect = 1
+      self.u = cx
+      self.v = cy
+      # get position from point cloud
+      idx = cx + cy*w
+      cloud_points = list(point_cloud2.read_points(pcl_msg, skip_nans=True, field_names = ("x", "y", "z")))
+      self.x = -cloud_points[idx][1] + 0.18
+      self.y = -cloud_points[idx][0] - 0.0125
+      self.z = -cloud_points[idx][2] + 0.19
+      rospy.loginfo("Detect tape: (" + str(self.x) + ", " + str(self.y) + ", " + str(self.z) + ")")     
+    else:
+      self.tape_detect = 0
+      self.u = 0
+      self.v = 0
+      self.x = 0
+      self.y = 0
+      self.z = 0
+
 
     # publish the sphd measurements:
     self.measurements_pub.publish(detections_msg)
 
-    # get the detection image:
+    # get the detection image
+                                    
     if self.detection_img_pub.get_num_connections() > 0:
       detection_img_msg = self.bridge.cv2_to_imgmsg(cv_image, "bgr8")
       detection_img_msg.header.stamp = detections_msg.header.stamp

@@ -23,8 +23,7 @@ class Detector:
     # ros
     self.bridge = cv_bridge.CvBridge()
     self.img_sub = message_filters.Subscriber('camera/rgb/image_raw', Image)
-    self.pcl_sub = message_filters.Subscriber('camera/depth/points', PointCloud2)   
-    self.odom_sub = message_filters.Subscriber('odom', Odometry)   
+    self.pcl_sub = message_filters.Subscriber('camera/depth/points', PointCloud2)      
     self.measurements = message_filters.ApproximateTimeSynchronizer([self.img_sub, self.pcl_sub, self.odom_sub], queue_size=5, slop=0.1)
     self.measurements.registerCallback(self.measurement_callback)
     self.measurements_pub = rospy.Publisher('mgs', MGSMeasurements, queue_size=10)
@@ -42,17 +41,6 @@ class Detector:
     cloud_pts = pointcloud2_to_xyz_array(pcl_msg)
     m_track.position = -np.asscalar(cloud_pts[inds[-1],0]
     # height is 0.19444602727890015
-
-    # read image:
-    try:
-      cv_image = self.bridge.imgmsg_to_cv2(img_msg, desired_encoding='bgr8')
-      hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
-    except cv_bridge.CvBridgeError as e:
-      print(e)
-    # search area: 
-    h, w, d = cv_image.shape
-    search_top = 1*h/5
-    search_bot = search_top + 80
                                     
     # tape detect 
     if M_tape['m00'] > 0:

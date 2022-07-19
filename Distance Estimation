@@ -7,7 +7,7 @@ from ros_numpy.point_cloud2 import pointcloud2_to_xyz_array
 from sensor_msgs.msg import Image, PointCloud2
 import message_filters 
 from sensor_msgs import point_cloud2
-from nav_msgs.msg import Odometry
+from yolact_msgs.msg import Detections
 from followbot.msg import MGSMeasurement, MGSMeasurements, MGSMarker
 
 class Detector:
@@ -22,7 +22,7 @@ class Detector:
 
     # ros
     self.bridge = cv_bridge.CvBridge()
-    self.img_sub = message_filters.Subscriber('camera/rgb/image_raw', Image)
+    self.img_sub = message_filters.Subscriber('/yolact_cpu_ros/detections', Detections)
     self.pcl_sub = message_filters.Subscriber('camera/depth/points', PointCloud2)      
     self.measurements = message_filters.ApproximateTimeSynchronizer([self.img_sub, self.pcl_sub], queue_size=5, slop=0.1)
     self.measurements.registerCallback(self.measurement_callback)

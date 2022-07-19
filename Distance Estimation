@@ -44,9 +44,6 @@ class Detector:
     # publish the sphd measurements:
     self.measurements_pub.publish(detections_msg)
 
-    # get the detection image
-                                    
-
 if __name__ == '__main__':
   rospy.init_node('follower_detector')
   detector = Detector()

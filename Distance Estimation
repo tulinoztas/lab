@@ -28,7 +28,7 @@ from followbot.msg import MGSMeasurement, MGSMeasurements, MGSMarker
     self.measurements_pub = rospy.Publisher('mgs', MGSMeasurements, queue_size=10)
     self.detection_img_pub = rospy.Publisher('detection_image', Image, queue_size=10)
 
-  def measurement_callback(self, img_msg, pcl_msg, odom_msg):
+  def measurement_callback(self, img_msg, pcl_msg):
     # Initalize measurements:
     detections_msg = Measurements()
     detections_msg.header.stamp = rospy.Time.now()
@@ -38,7 +38,6 @@ from followbot.msg import MGSMeasurement, MGSMeasurements, MGSMarker
     # read point cloud data
     cloud_pts = pointcloud2_to_xyz_array(pcl_msg)
     m_track.position = -np.asscalar(cloud_pts[i,j]
-    # height is 0.19444602727890015
 
     # publish the sphd measurements:
     self.measurements_pub.publish(detections_msg)

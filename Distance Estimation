@@ -9,7 +9,7 @@ import message_filters
 from sensor_msgs import point_cloud2
 from yolact_msgs.msg import Detections
 from followbot.msg import MGSMeasurement, MGSMeasurements, MGSMarker
-
+class Image:
   def __init__(self):
     # image coordinate:
     self.u = 0
